@@ -1,0 +1,21 @@
+#!/usr/bin/python
+#Network Instant MeSsaGing client
+import socket
+import sys
+import thread
+
+def rcv_msg():
+	while True:
+		r = s.recv(1024)
+		print "\n" + r + "\nYou: "
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.connect((socket.gethostbyname(sys.argv[1]), 5067))
+s_rcv = s.recv(1024)
+s.send(raw_input(s_rcv))
+thread.start_new_thread(rcv_msg, ())
+while True:
+	inp = raw_input('You: \n')
+	s.send(inp)
+	if inp == '/exit':
+		exit(0)

@@ -1,0 +1,39 @@
+#!/usr/bin/python
+#impd: the imp chat server
+import select
+import socket
+import thread
+
+def send_all(msg):
+	for x in c_dict:
+		c_dict[x].send(msg)
+def relay_msgs(x):
+	while True:
+		match = ''
+		msg = x.recv(1024)
+		for j in c_dict:
+			if c_dict[j] == x:
+				match = j
+				break	
+		name = usr_dict[match]
+		if msg == '/exit':
+			send_all(name + ' has left the chat.\n')
+		else:
+			send_all('<' + name + '> ' + msg)
+
+c_dict = {}
+usr_dict = {}
+cc = 0
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+s.bind(('', 5067))
+while True:
+	s.listen(5)
+	c, addr = s.accept()
+	c_dict['c' + str(cc)] = c
+	c.send('Choose a username.\n')
+	u_name = c.recv(1024)
+	usr_dict['c' + str(cc)] = u_name
+	thread.start_new_thread(relay_msgs, (c,))
+	cc = cc + 1
