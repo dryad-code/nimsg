@@ -3,19 +3,66 @@
 import socket
 import sys
 import thread
-
-def rcv_msg():
-	while True:
-		r = s.recv(1024)
-		print "\n" + r + "\nYou: "
-
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect((socket.gethostbyname(sys.argv[1]), 5067))
-s_rcv = s.recv(1024)
-s.send(raw_input(s_rcv))
-thread.start_new_thread(rcv_msg, ())
-while True:
-	inp = raw_input('You: \n')
-	s.send(inp)
-	if inp == '/exit':
-		exit(0)
+import curses
+try:
+	def split_str(s, c):
+		i = 0
+		a = []
+		while True:
+			if s[i: i+c] == '':
+				return a
+			a.append(s[i: i+c])
+			i = i + c
+	def rcv_msg(stdscr):
+		p = 0
+		try:
+			max_y, max_x = stdscr.getmaxyx()
+			while True:
+				if p == max_y - 2:
+					stdscr.clear()
+					stdscr.move(0,0)
+					stdscr.refresh()
+				q = 0
+				r = s.recv(1024)
+				stdscr.refresh()
+				for i in split_str(r, max_x - 1):
+					stdscr.addstr(i)
+					stdscr.addstr('\n')
+					stdscr.refresh()
+					q = q + 1
+				p = p + q
+		except:
+			curses.endwin()
+			s.close()
+			exit(1)
+	def main_func(stdscr):
+		curses.echo()
+		stdscr.keypad(1)
+		try:
+			thread.start_new_thread(curses.wrapper, (rcv_msg,))
+		except:
+			s.close()
+			curses.endwin()
+			exit()
+		max_y, max_x = stdscr.getmaxyx()
+		buf = curses.newwin(1, max_x - 2, max_y - 1, 1)
+		while True:
+			buf.clear()
+			inp = buf.getstr()
+			s.send(inp)
+			if inp == '/exit':
+				s.close()
+				curses.endwin()
+				exit(0)
+	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	s.connect((socket.gethostbyname(sys.argv[1]), 5067))
+	s_rcv =	s.recv(1024)
+	s.send(raw_input(s_rcv))
+	curses.wrapper(main_func)
+except:
+	curses.endwin()
+	s.close()
+	exit(1)
+curses.endwin()
+s.close()
+exit(1)
